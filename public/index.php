@@ -1,29 +1,145 @@
 <?php
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Psr\Container\ContainerInterface;
+use Slim\Exception\HttpNotFoundException;
 use Slim\Factory\AppFactory;
+use App\Services\DB;
+use App\Services\Movies;
 
 require __DIR__ . '/../vendor/autoload.php';
 
 $app = AppFactory::create();
 
-/*$container = $app->getContainer();
+$app->addErrorMiddleware(true, false, false);
 
-$container->set('SubscriptionController', function (ContainerInterface $container) {
-    return new \App\Controllers\SubscriptionController();
+//ENABLE CORS
+$app->options('/{routes:.+}', function ($request, $response, $args) {
+    return $response;
 });
 
-$app->get('/all', \SubscriptionController::class . ':index');*/
+$app->add(function ($request, $handler) {
+    $response = $handler->handle($request);
+    return $response
+            ->withHeader('Access-Control-Allow-Origin', 'http://localhost')
+            ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization')
+            ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+});
+//END OF ENABLE CORS
 
-$app->get('/', function (Request $request, Response $response, $args) {
-    $data = array('name' => 'Bob', 'age' => 40);
-    $payload = json_encode($data);
+$app->get('/movies', function (Request $request, Response $response, $args) {
+    $movies = new Movies;
+    $payload = $movies->get();
 
     $response->getBody()->write($payload);
-
     return $response
           ->withHeader('Content-Type', 'application/json');
 });
 
+$app->get('/movies/{imdbid}', function (Request $request, Response $response, $args) {
+    $movie = new Movies;
+    $payload = $movie->get($args['imdbid']);
+
+    $response->getBody()->write($payload);
+    return $response
+          ->withHeader('Content-Type', 'application/json');
+
+});
+
+$app->post('/{userid}/{imdbid}', function (Request $request, Response $response, $args) {
+    $movie = json_decode($request->getBody()->getContents());
+
+    $now = date('Y-m-d H:i:s');
+
+    /*$movie = new Movies;
+    $payload = $movie->get($args['imdbid']);
+    $payload = json_decode($payload);*/
+
+    $conn = new DB;
+    $db = $conn->connect();
+
+    $sql = 'INSERT INTO subscriptions (user_id, movie_id, movie, rating, poster, year, length, created_at) values(?, ?, ?, ?, ?, ?, ?, ?)';
+
+    $data = [
+        $args['userid'],
+        $args['imdbid'],
+        $movie->title,
+        $movie->rating,
+        $movie->poster,
+        $movie->year,
+        $movie->length,
+        $now
+    ];
+
+    try {
+        $db->prepare($sql)->execute($data);
+    } catch(\PDOException $e) {
+        var_dump($e->getMessage());
+        $response->getBody()->write(json_encode(['error' => 'An error occured']));
+        return $response
+          ->withHeader('Content-Type', 'application/json');
+    }
+
+    $response->getBody()->write(json_encode(['success' => 1]));
+
+    return $response
+          ->withHeader('Content-Type', 'application/json');
+
+});
+
+$app->delete('/{userid}/{imdbid}', function (Request $request, Response $response, $args) {
+    $now = date('Y-m-d H:i:s');
+
+    $conn = new DB;
+    $db = $conn->connect();
+
+    $sql = 'UPDATE subscriptions set deleted_at = ? where user_id = ? and movie_id = ? ';
+
+    try {
+        $db->prepare($sql)->execute([$now, $args['userid'], $args['imdbid']]);
+    } catch(\PDOException $e) {
+        var_dump($e->getMessage());
+        $response->getBody()->write(json_encode(['error' => 'An error occured']));
+        return $response
+          ->withHeader('Content-Type', 'application/json');
+    }
+
+    $response->getBody()->write(json_encode(['success' => 1]));
+
+    return $response
+          ->withHeader('Content-Type', 'application/json');
+
+});
+
+$app->get('/{userid}', function (Request $request, Response $response, $args) {
+
+    $conn = new DB;
+    $db = $conn->connect();
+
+    $sql = 'SELECT * FROM subscriptions WHERE user_id = ? AND deleted_at IS NULL';
+
+    try {
+        $stmt = $db->prepare($sql);
+        $stmt->execute([$args['userid']]);
+        $result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    } catch(\PDOException $e) {
+        var_dump($e->getMessage());
+        $response->getBody()->write(json_encode(['error' => 'An error occured']));
+        return $response
+          ->withHeader('Content-Type', 'application/json');
+    }
+
+
+    $response->getBody()->write(json_encode(['success' => 1, 'data' => $result]));
+
+    return $response
+          ->withHeader('Content-Type', 'application/json');
+
+});
+
+/**
+ * Catch-all route to serve a 404 Not Found page if none of the routes match
+ */
+$app->map(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], '/{routes:.+}', function ($request, $response) {
+    throw new HttpNotFoundException($request);
+});
 $app->run();
