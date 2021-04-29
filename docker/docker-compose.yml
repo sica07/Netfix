@@ -11,7 +11,7 @@ services:
         - "8888:8888"
     volumes:
       - ./../backend/:/var/www
-    container_name: abicart_back
+    container_name: netfix_back
 
   frontend:
     image: nginx:latest
@@ -19,6 +19,6 @@ services:
         - "80:80"
     volumes:
       - ./../frontend/:/usr/share/nginx/html
-    container_name: abicart_front
+    container_name: netfix_front
 
 
