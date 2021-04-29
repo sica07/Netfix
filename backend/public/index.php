@@ -8,6 +8,12 @@ use App\Services\Movies;
 
 require __DIR__ . '/../vendor/autoload.php';
 
+error_reporting(E_ALL);
+ini_set('ignore_repeated_errors', TRUE);
+ini_set('display_errors', FALSE);
+ini_set("log_errors", TRUE);
+ini_set('error_log', config('error_file'));
+
 $app = AppFactory::create();
 
 $app->addErrorMiddleware(true, false, false);
@@ -35,27 +41,31 @@ $app->get('/movies', function (Request $request, Response $response, $args) {
           ->withHeader('Content-Type', 'application/json');
 });
 
-$app->get('/movies/{imdbid}', function (Request $request, Response $response, $args) {
-    $movie = new Movies;
-    $payload = $movie->get($args['imdbid']);
-
-    $response->getBody()->write($payload);
-    return $response
-          ->withHeader('Content-Type', 'application/json');
-
-});
-
 $app->post('/{userid}/{imdbid}', function (Request $request, Response $response, $args) {
     $movie = json_decode($request->getBody()->getContents());
 
     $now = date('Y-m-d H:i:s');
 
-    /*$movie = new Movies;
-    $payload = $movie->get($args['imdbid']);
-    $payload = json_decode($payload);*/
-
     $conn = new DB;
     $db = $conn->connect();
+
+    $sql = 'SELECT movie_id FROM subscriptions WHERE user_id = ? AND movie_id = ? AND deleted_at IS NULL';
+
+    try {
+        $stmt = $db->prepare($sql);
+        $stmt->execute([$args['userid'], $args['imdbid']]);
+        $existing = count($stmt->fetchAll());
+    } catch(\PDOException $e) {
+        error_log($e);
+        $response->getBody()->write(json_encode(['error' => 'An error occured']));
+        return $response
+          ->withHeader('Content-Type', 'application/json');
+    }
+    if($existing > 0) {
+        $response->getBody()->write(json_encode(['error' => 'A subscription for this show already exists!']));
+        return $response
+          ->withHeader('Content-Type', 'application/json');
+    }
 
     $sql = 'INSERT INTO subscriptions (user_id, movie_id, movie, rating, poster, year, length, created_at) values(?, ?, ?, ?, ?, ?, ?, ?)';
 
@@ -74,6 +84,7 @@ $app->post('/{userid}/{imdbid}', function (Request $request, Response $response,
         $db->prepare($sql)->execute($data);
     } catch(\PDOException $e) {
         var_dump($e->getMessage());
+        error_log($e);
         $response->getBody()->write(json_encode(['error' => 'An error occured']));
         return $response
           ->withHeader('Content-Type', 'application/json');
@@ -97,7 +108,7 @@ $app->delete('/{userid}/{imdbid}', function (Request $request, Response $respons
     try {
         $db->prepare($sql)->execute([$now, $args['userid'], $args['imdbid']]);
     } catch(\PDOException $e) {
-        var_dump($e->getMessage());
+        error_log($e);
         $response->getBody()->write(json_encode(['error' => 'An error occured']));
         return $response
           ->withHeader('Content-Type', 'application/json');

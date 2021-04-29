@@ -10,17 +10,8 @@ class Movies {
 
     $this->curl = \curl_init();
 
-
-  }
-
-  private function setOpt($imdbId =  null)
-  {
     $query = "https://unogs-unogs-v1.p.rapidapi.com/aaapi.cgi?q=get%3Anew7%3SE&p=1&t=ns&st=adv";
     $host = "unogs-unogs-v1.p.rapidapi.com";
-    if ($imdbId) {
-      $host = "imdb-internet-movie-database-unofficial.p.rapidapi.com";
-      $query = "https://imdb-internet-movie-database-unofficial.p.rapidapi.com/film/" .  $imdbId;
-    }
 
     \curl_setopt_array($this->curl, [
       CURLOPT_URL => $query ,
@@ -38,9 +29,8 @@ class Movies {
     ]);
   }
 
-  public function get($imdbId = null)
+  public function get()
   {
-    $this->setOpt($imdbId);
     $response = \curl_exec($this->curl);
     $err = \curl_error($this->curl);
 

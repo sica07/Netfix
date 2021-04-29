@@ -1,0 +1,142 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>NETFIX</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mini.css/3.0.1/mini-default.min.css">
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col-md-2"></div>
+        <div class="col-md-8">
+          <div class="card error" style="max-width: 100%;">
+            <h2>NetFix</h2>
+          </div>
+        </div>
+        <div class="col-md-2"></div>
+      </div>
+      <div class="row">
+        <div class="col-md-2"></div>
+        <div class="col-md-8">
+          <div class="card" style="max-width: 100%;" id="container">
+            <div class="row" v-if="user">
+              <div class="col-md-3"><h3>Subscriptions</h3></div>
+              <div class="col-md-2"><a href="/subscribe.html" class="button tertiary">Subscribe</a></div>
+              <div class="col-md-7" style="text-align: right;"><button v-on:click="logout">Logout</button></div>
+              <div class="col-md-12">
+                <table v-if="subscriptions.length > 0" style="width: 100%; max-height: 100%;">
+                  <thead>
+                    <tr>
+                      <th style="flex: none; width: 28%;">Movie</th>
+                      <th style="flex: none; width: 10%;">Length</th>
+                      <th style="flex: none; width: 7%;">Rating</th>
+                      <th style="flex: none; width: 7%;">Year</th>
+                      <th style="flex: none; width: 7%;"></th>
+                      <th style="flex: none; width: 7%;">Subscription date</th>
+                      <th style="flex: none; width: 10%;"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="sub in subscriptions" :key="sub.id">
+                      <td style="flex: none; width: 28%;" v-html="sub.movie"/>
+                      <td style="flex: none; width: 10%;">{{sub.length}}</td>
+                      <td style="flex: none; width: 7%;">{{sub.rating}}</td>
+                      <td style="flex: none; width: 7%;">{{sub.year}}</td>
+                      <td style="flex: none; width: 7%;"><img :src="sub.poster" style="height: 100px"/></td>
+                      <td  style="flex: none; width: 7%; color: #aaa;"><small>{{sub.created_at}}</small></td>
+                      <td style="flex: none; width: 10%;"><button class="secondary" v-on:click="remove(sub.movie_id)">Remove</button></td>
+                    </tr>
+                    </tbody>
+                  </table>
+                  <span v-else> There are no subscriptions yet </span>
+              </div>
+
+            </div>
+            <form v-else="user">
+              <fieldset>
+                <legend>Login</legend>
+                <label for="user">User:</label>
+                <select v-on:change="login" v-model="user">
+                  <option value="0">select user...</option>
+                  <option value="1">User 1</option>
+                  <option value="2">User 2</option>
+                </select>
+
+              </fieldset>
+            </form>
+          </div>
+        </div>
+        <div class="col-md-2"></div>
+      </div>
+    </div>
+  </body>
+  <script>
+    var app = new Vue({
+          el: '#container',
+          data: {
+                user: 0,
+                subscriptions: [],
+                subscriptionIds: []
+              },
+          created: function() {
+                if(window.localStorage.userId) {
+                      this.user = window.localStorage.userId;
+                    } else {
+                          window.localStorage.userId = this.user;
+                        }
+              },
+          methods: {
+                login: function(e) {
+                      if(this.user == 0) {
+                            this.logout()
+                          }
+                      window.localStorage.userId = this.user;
+                    },
+                logout: function(e) {
+                      this.user = 0;
+                      window.localStorage.userId = this.user;
+                    },
+                remove: function(imdbid) {
+                      let answer = confirm("Are you sure you want to remove this subscription?")
+                      if(!answer) {
+                            return;
+                          }
+                      fetch('http://localhost:8888/' + window.localStorage.userId + '/' + imdbid,
+                            {
+                                  method: 'DELETE',
+                                }
+                          )
+                        .then(response => response.json())
+                        .then(result => {
+                              if(result.success) {
+                                    this.subscriptions = this.subscriptions.filter(elem => elem.movie_id != imdbid)
+                                  }
+                              if(result.error) {
+                                    alert(result.error)
+                                  }
+                            });
+
+                    }
+              },
+          watch: {
+                subscriptions: function(newsub, oldsub) {
+                      console.log('schimbat')
+                      const that = this;
+                      newsub.forEach(function(elem){
+                            that.subscriptionIds.push(elem.movie_id);
+                          })
+                      window.localStorage.subscriptionIds = JSON.stringify(this.subscriptionIds);
+                    },
+                user: function(newuser) {
+                      fetch('http://localhost:8888/' + this.user)
+                        .then(response => response.json())
+                        .then(result => this.subscriptions =  result.data);
+
+                    }
+              }
+
+    })
+  </script>
+</html>
