@@ -24,7 +24,7 @@
         <div class="col-md-2"></div>
         <div class="col-md-8">
           <div class="card" style="max-width: 100%" id="container">
-            <div class="row" v-if="user">
+            <div class="row">
               <div class="col-md-3"><h3>Subscribe to our shows</h3></div>
               <div class="col-md-2">
                 <a href="/" class="button primary">Subscriptions</a>
@@ -76,17 +76,6 @@
                 Please wait while loading the full list of movies...
               </div>
             </div>
-            <form v-else>
-              <fieldset>
-                <legend>Login</legend>
-                <label for="user">User:</label>
-                <select v-on:change="login" v-model="user">
-                  <option value="0">select user...</option>
-                  <option value="1">User 1</option>
-                  <option value="2">User 2</option>
-                </select>
-              </fieldset>
-            </form>
           </div>
         </div>
         <div class="col-md-2"></div>
@@ -102,9 +91,14 @@
         subscriptionIds: [],
       },
       created: function () {
+        if (!window.localStorage.userId || window.localStorage.userId == 0) {
+          window.location.href = "/";
+        }
+
         if (!window.localStorage.subscriptionIds) {
           window.localStorage.subscriptionIds = JSON.stringify([]);
         }
+
         this.subscriptionIds = JSON.parse(window.localStorage.subscriptionIds);
 
         if (!window.localStorage.movies) {
@@ -158,6 +152,7 @@
               }
             });
         },
+
         logout: function (e) {
           this.user = 0;
           window.localStorage.userId = this.user;

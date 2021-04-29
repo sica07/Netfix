@@ -24,7 +24,7 @@
         <div class="col-md-2"></div>
         <div class="col-md-8">
           <div class="card" style="max-width: 100%" id="container">
-            <div class="row" v-if="user">
+            <div class="row" v-if="user > 0">
               <div class="col-md-3"><h3>Subscriptions</h3></div>
               <div class="col-md-2">
                 <a href="/subscribe.html" class="button tertiary">Subscribe</a>
@@ -113,10 +113,12 @@
           }
           window.localStorage.userId = this.user;
         },
+
         logout: function (e) {
           this.user = 0;
           window.localStorage.userId = this.user;
         },
+
         remove: function (imdbid) {
           let answer = confirm(
             "Are you sure you want to remove this subscription?"
@@ -149,9 +151,11 @@
         subscriptions: function (newsub, oldsub) {
           this.subscriptionIds = [];
           const that = this;
+
           newsub.forEach(function (elem) {
             that.subscriptionIds.push(elem.movie_id);
           });
+
           window.localStorage.subscriptionIds = JSON.stringify(
             this.subscriptionIds
           );
