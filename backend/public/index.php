@@ -1,19 +1,13 @@
 <?php
 
-use App\Services\DB;
 use App\Services\Movies;
+use App\Services\Response as Resp;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Exception\HttpNotFoundException;
 use Slim\Factory\AppFactory;
 
 require __DIR__.'/../vendor/autoload.php';
-
-error_reporting(E_ALL);
-ini_set('ignore_repeated_errors', true);
-ini_set('display_errors', false);
-ini_set('log_errors', true);
-ini_set('error_log', config('error_file'));
 
 $app = AppFactory::create();
 
@@ -38,41 +32,29 @@ $app->get('/movies', function (Request $request, Response $response, $args) {
     $movies = new Movies();
     $payload = $movies->get();
 
-    $response->getBody()->write($payload);
-
-    return $response
-        ->withHeader('Content-Type', 'application/json');
+    return Resp::success($response, $payload);
 });
 
 $app->post('/{userid}/{imdbid}', function (Request $request, Response $response, $args) {
+    $repo = new \App\Repositories\Movie();
+
+    $existing = $repo->exists($args['userid'], $args['imdbid']);
+
+    if (null === $existing) {
+        return Resp::error($response);
+    }
+
+    if ($existing > 0) {
+        return Resp::error($response, 'A subscription for this show already exists!');
+    }
+
     $movie = json_decode($request->getBody()->getContents());
 
+    if ($invalid = (new \App\Validators\MovieValidator($movie))->isInvalid()) {
+        return Resp::error($response, $invalid);
+    }
+
     $now = date('Y-m-d H:i:s');
-
-    $conn = new DB();
-    $db = $conn->connect();
-
-    $sql = 'SELECT movie_id FROM subscriptions WHERE user_id = ? AND movie_id = ? AND deleted_at IS NULL';
-
-    try {
-        $stmt = $db->prepare($sql);
-        $stmt->execute([$args['userid'], $args['imdbid']]);
-        $existing = count($stmt->fetchAll());
-    } catch (\PDOException $e) {
-        error_log($e);
-        $response->getBody()->write(json_encode(['error' => 'An error occured']));
-
-        return $response
-            ->withHeader('Content-Type', 'application/json');
-    }
-    if ($existing > 0) {
-        $response->getBody()->write(json_encode(['error' => 'A subscription for this show already exists!']));
-
-        return $response
-            ->withHeader('Content-Type', 'application/json');
-    }
-
-    $sql = 'INSERT INTO subscriptions (user_id, movie_id, movie, rating, poster, year, length, created_at) values(?, ?, ?, ?, ?, ?, ?, ?)';
 
     $data = [
         $args['userid'],
@@ -85,69 +67,35 @@ $app->post('/{userid}/{imdbid}', function (Request $request, Response $response,
         $now,
     ];
 
-    try {
-        $db->prepare($sql)->execute($data);
-    } catch (\PDOException $e) {
-        var_dump($e->getMessage());
-        error_log($e);
-        $response->getBody()->write(json_encode(['error' => 'An error occured']));
+    $result = $repo->save($data);
 
-        return $response
-            ->withHeader('Content-Type', 'application/json');
+    if (null === $result) {
+        return Resp::error($response);
     }
 
-    $response->getBody()->write(json_encode(['success' => 1]));
-
-    return $response
-        ->withHeader('Content-Type', 'application/json');
+    return Resp::success($response);
 });
-
 $app->delete('/{userid}/{imdbid}', function (Request $request, Response $response, $args) {
-    $now = date('Y-m-d H:i:s');
+    $repo = new \App\Repositories\Movie();
 
-    $conn = new DB();
-    $db = $conn->connect();
+    $result = $repo->update($args['userid'], $args['imdbid']);
 
-    $sql = 'UPDATE subscriptions set deleted_at = ? where user_id = ? and movie_id = ? ';
-
-    try {
-        $db->prepare($sql)->execute([$now, $args['userid'], $args['imdbid']]);
-    } catch (\PDOException $e) {
-        error_log($e);
-        $response->getBody()->write(json_encode(['error' => 'An error occured']));
-
-        return $response
-            ->withHeader('Content-Type', 'application/json');
+    if (null === $result) {
+        return Resp::error($response);
     }
 
-    $response->getBody()->write(json_encode(['success' => 1]));
-
-    return $response
-        ->withHeader('Content-Type', 'application/json');
+    return Resp::success($response);
 });
 
 $app->get('/{userid}', function (Request $request, Response $response, $args) {
-    $conn = new DB();
-    $db = $conn->connect();
+    $repo = new \App\Repositories\Movie();
+    $result = $repo->all($args['userid']);
 
-    $sql = 'SELECT * FROM subscriptions WHERE user_id = ? AND deleted_at IS NULL';
-
-    try {
-        $stmt = $db->prepare($sql);
-        $stmt->execute([$args['userid']]);
-        $result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-    } catch (\PDOException $e) {
-        var_dump($e->getMessage());
-        $response->getBody()->write(json_encode(['error' => 'An error occured']));
-
-        return $response
-            ->withHeader('Content-Type', 'application/json');
+    if (null === $result) {
+        return Resp::error($response);
     }
 
-    $response->getBody()->write(json_encode(['success' => 1, 'data' => $result]));
-
-    return $response
-        ->withHeader('Content-Type', 'application/json');
+    return Resp::success($response, ['success' => 1, 'data' => $result]);
 });
 
 /*

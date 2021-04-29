@@ -1,17 +1,20 @@
 <html>
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
     <title>NETFIX - subscribe</title>
     <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mini.css/3.0.1/mini-default.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/mini.css/3.0.1/mini-default.min.css"
+    />
   </head>
   <body>
     <div class="container">
       <div class="row">
         <div class="col-md-2"></div>
         <div class="col-md-8">
-          <div class="card error" style="max-width: 100%;">
+          <div class="card error" style="max-width: 100%">
             <h2>NetFix</h2>
           </div>
         </div>
@@ -20,41 +23,60 @@
       <div class="row">
         <div class="col-md-2"></div>
         <div class="col-md-8">
-          <div class="card" style="max-width: 100%;" id="container">
+          <div class="card" style="max-width: 100%" id="container">
             <div class="row" v-if="user">
               <div class="col-md-3"><h3>Subscribe to our shows</h3></div>
-              <div class="col-md-2"><a href="/" class="button primary">Subscriptions</a></div>
-              <div class="col-md-7" style="text-align: right;"><button v-on:click="logout">Logout</button></div>
-              <div class="col-md-12">
-                <table v-if="movies.length > 0" style="width: 100%; max-height: 100%;">
-                  <thead>
-                    <tr>
-                      <th style="flex: none; width: 28%;">Movie</th>
-                      <th style="flex: none; width: 10%;">Length</th>
-                      <th style="flex: none; width: 7%;">Rating</th>
-                      <th style="flex: none; width: 7%;">Year</th>
-                      <th style="flex: none; width: 17%;"></th>
-                      <th style="flex: none; width: 10%;"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="sub in movies" v-if="sub.imdbid && !subscriptionIds.includes(sub.imdbid)" :key="sub.id">
-                      <td style="flex: none; width: 28%;" v-html="sub.title"/>
-                      <td style="flex: none; width: 10%;"><span v-if="!sub.runtime">{{sub.type}}</span><span v-else>{{sub.runtime}}</span></td>
-                      <td style="flex: none; width: 7%;">{{sub.rating}}</td>
-                      <td style="flex: none; width: 7%;">{{sub.released}}</td>
-                      <td style="flex: none; width: 17%;"><img :src="sub.image" style="width: 100px"/></td>
-                      <td style="flex: none; width: 10%;">
-                        <button class="tertiary" v-on:click="subscribe(sub)">Subscribe</button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-                <span v-else> Please wait while loading the full list of movies...</span>
+              <div class="col-md-2">
+                <a href="/" class="button primary">Subscriptions</a>
               </div>
-
+              <div class="col-md-7" style="text-align: right">
+                <button v-on:click="logout">Logout</button>
+              </div>
+              <div
+                v-if="movies.length > 0"
+                style="width: 100%; max-height: 100%"
+                class="col-md-12"
+              >
+                <div
+                  class="row"
+                  style="background: #ccc; color: #000; padding: 0.5em 0"
+                >
+                  <div class="col-md-5"><b>Movie</b></div>
+                  <div class="col-md-1"><b>Length</b></div>
+                  <div class="col-md-1"><b>Rating</b></div>
+                  <div class="col-md-1"><b>Year</b></div>
+                  <div class="col-md-2"></div>
+                  <div class="col-md-2"></div>
+                </div>
+                <div
+                  v-for="sub in movies"
+                  v-if="sub.imdbid && !subscriptionIds.includes(sub.imdbid)"
+                  :key="sub.id"
+                  style="border-bottom: 1px solid #bbb; padding: 0.5em 0"
+                  class="row"
+                >
+                  <div class="col-md-5" v-html="sub.title"></div>
+                  <div class="col-md-1">
+                    <span v-if="!sub.runtime">{{ sub.type }}</span
+                    ><span v-else>{{ sub.runtime }}</span>
+                  </div>
+                  <div class="col-md-1">{{ sub.rating }}</div>
+                  <div class="col-md-1">{{ sub.released }}</div>
+                  <div class="col-md-2">
+                    <img :src="sub.image" style="width: 100px" />
+                  </div>
+                  <div class="col-md-2">
+                    <button class="tertiary" v-on:click="subscribe(sub)">
+                      Subscribe
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="row" v-else>
+                Please wait while loading the full list of movies...
+              </div>
             </div>
-            <form v-else="user">
+            <form v-else>
               <fieldset>
                 <legend>Login</legend>
                 <label for="user">User:</label>
@@ -63,7 +85,6 @@
                   <option value="1">User 1</option>
                   <option value="2">User 2</option>
                 </select>
-
               </fieldset>
             </form>
           </div>
@@ -74,74 +95,75 @@
   </body>
   <script>
     var app = new Vue({
-          el: '#container',
-          data: {
-                user: window.localStorage.userId,
-                movies: [],
-                subscriptionIds: [],
-              },
-          created: function(){
+      el: "#container",
+      data: {
+        user: window.localStorage.userId,
+        movies: [],
+        subscriptionIds: [],
+      },
+      created: function () {
+        if (!window.localStorage.subscriptionIds) {
+          window.localStorage.subscriptionIds = JSON.stringify([]);
+        }
+        this.subscriptionIds = JSON.parse(window.localStorage.subscriptionIds);
 
-                if(!window.localStorage.subscriptionIds) {
-                      window.localStorage.subscriptionIds = JSON.stringify([]);
-                    }
-                this.subscriptionIds = JSON.parse(window.localStorage.subscriptionIds)
+        if (!window.localStorage.movies) {
+          fetch("http://localhost:8888/movies")
+            .then((response) => response.json())
+            .then((result) => {
+              this.movies = result[0].ITEMS;
+              window.localStorage.movies = JSON.stringify(this.movies);
+            });
+        } else {
+          this.movies = JSON.parse(window.localStorage.movies);
+        }
+      },
+      methods: {
+        subscribe: function (movie) {
+          let length = movie.runtime;
+          if (!movie.runtime) {
+            length = movie.type;
+          }
 
-                if(!window.localStorage.movies) {
-                      fetch('http://localhost:8888/movies')
-                        .then(response => response.json())
-                        .then(result => {
-                              this.movies = result.ITEMS
-                              window.localStorage.movies = JSON.stringify(this.movies);
-                            });
+          const data = {
+            title: movie.title,
+            rating: movie.rating,
+            year: movie.released,
+            length: length,
+            poster: movie.image,
+          };
 
-                    } else {
-                          this.movies = JSON.parse(window.localStorage.movies);
-                    }
-
-
-              },
-          methods: {
-                subscribe: function(movie) {
-                      let length = movie.runtime;
-                      if(!movie.runtime) {
-                            length = movie.type;
-                          }
-
-                      const data = {
-                            title: movie.title,
-                            rating: movie.rating,
-                            year: movie.released,
-                            length: length,
-                            poster: movie.image,
-                          }
-
-                      fetch('http://localhost:8888/' + window.localStorage.userId + '/' + movie.imdbid,
-                            {
-                                  method: 'POST',
-                                  body: JSON.stringify(data)
-                                }
-                          )
-                        .then(response => response.json())
-                        .then(result => {
-                              if(result.success) {
-                                    //alert('You subscribed to this show!')
-                                    this.subscriptionIds.push(movie.imdbid);
-                                    window.localStorage.subscriptionIds = JSON.stringify(this.subscriptionIds);
-                                    window.location.href = "/";
-                                  }
-                              if(result.error) {
-                                    alert(result.error)
-                                  }
-                            });
-                    },
-                logout: function(e) {
-                      this.user = 0;
-                      window.localStorage.userId = this.user;
-                      window.location.href = "/";
-                    }
+          fetch(
+            "http://localhost:8888/" +
+              window.localStorage.userId +
+              "/" +
+              movie.imdbid,
+            {
+              method: "POST",
+              body: JSON.stringify(data),
+            }
+          )
+            .then((response) => response.json())
+            .then((result) => {
+              if (result.success) {
+                //alert('You subscribed to this show!')
+                this.subscriptionIds.push(movie.imdbid);
+                window.localStorage.subscriptionIds = JSON.stringify(
+                  this.subscriptionIds
+                );
+                window.location.href = "/";
               }
-
-    })
+              if (result.error) {
+                alert(result.error);
+              }
+            });
+        },
+        logout: function (e) {
+          this.user = 0;
+          window.localStorage.userId = this.user;
+          window.location.href = "/";
+        },
+      },
+    });
   </script>
 </html>
