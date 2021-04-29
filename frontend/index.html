@@ -100,13 +100,12 @@
                     },
                 remove: function(imdbid) {
                       let answer = confirm("Are you sure you want to remove this subscription?")
-                      if(!answer) {
-                            return;
-                          }
-                      fetch('http://localhost:8888/' + window.localStorage.userId + '/' + imdbid,
+                      if(!answer)  return;
+
+                        fetch('http://localhost:8888/' + window.localStorage.userId + '/' + imdbid,
                             {
-                                  method: 'DELETE',
-                                }
+                                method: 'DELETE',
+                            }
                           )
                         .then(response => response.json())
                         .then(result => {
@@ -122,7 +121,7 @@
               },
           watch: {
                 subscriptions: function(newsub, oldsub) {
-                      console.log('schimbat')
+                      this.subscriptionIds = [];
                       const that = this;
                       newsub.forEach(function(elem){
                             that.subscriptionIds.push(elem.movie_id);
