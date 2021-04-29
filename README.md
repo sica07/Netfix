@@ -13,7 +13,7 @@ The following list is what tasks you need to complete:
 ## Installation:
 1. Make sure that no server/service is running on port `:80`
 2. `$ cd docker && docker-compose up -d`
-3. `$ docker exec netfix_back bash -c "composer install"`
+3. `$ docker exec netfix_back bash -c "cd .. && composer install"`
 
 ## Running:
 Go to [http://localhost](http://localhost).
