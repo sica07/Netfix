@@ -7,7 +7,6 @@ class Movies {
 
   public function __construct()
   {
-
     $this->curl = \curl_init();
 
     $query = "https://unogs-unogs-v1.p.rapidapi.com/aaapi.cgi?q=get%3Anew7%3SE&p=1&t=ns&st=adv";
